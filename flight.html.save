@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flugdetails</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+<style>
+:root{--bg:#0b132b;--bg2:#1c2541;--muted:#9fb3c8;--card:rgba(255,255,255,.08);--accent:#5bc0be}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,var(--bg),var(--bg2));
+     color:#fff;display:flex;justify-content:center;align-items:flex-start;min-height:100vh}
+.wrap{width:100%;max-width:1100px;padding:10px}
+h1{margin:8px 0 6px;text-align:center;font-size:1.8rem}
+#fn{color:var(--accent);font-weight:700}
+.badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;
+       border:1px solid rgba(255,255,255,.25);color:#fff;font-size:.85rem}
+.card{background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px}
+
+.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.item{background:rgba(255,255,255,.06);border-radius:10px;padding:10px;text-align:center}
+.lbl{font-size:.85rem;color:var(--muted)} .val{font-size:1.2rem;font-weight:600;min-height:1.2em}
+
+.area{display:grid;grid-template-columns:1fr 230px;gap:10px}
+#map{height:340px;border-radius:12px}
+.side{display:flex;flex-direction:column;gap:10px}
+.panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
+.panel h3{margin:0 0 6px;font-size:1rem;color:#fff}
+.qr img{width:210px;height:210px;background:#fff;border-radius:8px;padding:6px;display:block;margin:0 auto}
+.status{color:var(--muted);font-size:.9rem;min-height:1.2em}
+.route{color:#fff;font-size:.95rem;margin-bottom:8px}
+
+@media (max-width:900px){
+  .area{grid-template-columns:1fr}
+  #map{height:260px}
+  .panel.qr{position:sticky;bottom:8px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>✈️ Flug <span id="fn">—</span><span id="mode" class="badge">Warte…</span></h1>
+
+  <div class="card">
+    <div id="route" class="route">Route: –</div>
+
+    <div class="top">
+      <div class="item"><div class="lbl">Höhe</div>    <div class="val" id="alt">–</div></div>
+      <div class="item"><div class="lbl">Speed</div>   <div class="val" id="spd">–</div></div>
+      <div class="item"><div class="lbl">Position</div><div class="val" id="pos">–</div></div>
+      <div class="item"><div class="lbl">Heading</div> <div class="val" id="hdg">–</div></div>
+    </div>
+
+    <div class="area">
+      <div id="map"></div>
+
+      <div class="side">
+        <div class="panel">
+          <h3>Letztes Update</h3>
+          <div id="upd" class="status">–</div>
+          <h3>Quelle</h3>
+          <div id="src" class="status">OpenSky (BBox)</div>
+        </div>
+
+        <div class="panel qr">
+          <h3>⬅ Zurück zum Dashboard</h3>
+          <img id="qr-back" alt="QR Back" />
+          <div class="status">Scannen, um zurückzukehren</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // --- Parameter robust parsen ---
+  const raw = location.search.replace('?=','?');
+  const qs  = new URLSearchParams(raw);
+  const FLIGHT = (qs.get('flight') || '').trim().toUpperCase();
+  document.getElementById('fn').textContent = FLIGHT || '—';
+
+  // QR fix setzen
+const backURL = `https://lehre.bpm.in.tum.de/~go36jas/flights/scan.php?back=1`;
+  document.getElementById('qr-back').src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=210x210&data="+encodeURIComponent(BACK_URL);
+
+  // --- Leaflet Setup ---
+  const map = L.map('map', {attributionControl:false}).setView([48.3538,11.7861], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+  L.Icon.Default.mergeOptions({
+    iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+  const trail = L.polyline([], {color:'#5bc0be', weight:3, opacity:.9}).addTo(map);
+  const marker = L.marker([48.3538,11.7861]).addTo(map);
+  let firstFit = true;
+
+  const $  = id => document.getElementById(id);
+  const set = (id, v) => { const el=$(id); if(el) el.textContent=v; };
+
+  // --- Regionen: Bayern → DACH Fallback ---
+  const REGIONS = [
+    {name:'Bayern', lamin:47.2, lamax:50.7, lomin:8.5,  lomax:13.9},
+    {name:'DACH',  lamin:45.0, lamax:55.0, lomin:5.0,  lomax:15.0}
+  ];
+  const URLs = REGIONS.map(r => ({
+    name: r.name,
+    url: `https://opensky-network.org/api/states/all?lamin=${r.lamin}&lomin=${r.lomin}&lamax=${r.lamax}&lomax=${r.lomax}`
+  }));
+
+  // --- Trail-Qualität: Sprünge filtern, Länge begrenzen ---
+  function addTrailPoint(lat, lon){
+    const pts = trail.getLatLngs();
+    const last = pts[pts.length-1];
+    if (last){
+      const dLat = Math.abs(lat - last.lat);
+      const dLon = Math.abs(lon - last.lng);
+      // zu großer Sprung? -> Trail reset (neuer Abschnitt)
+      if (dLat>1 || dLon>1) trail.setLatLngs([]);
+    }
+    trail.addLatLng([lat,lon]);
+    const keep = 500; // max Punkte
+    if (trail.getLatLngs().length > keep){
+      trail.setLatLngs(trail.getLatLngs().slice(-keep));
+    }
+  }
+
+  async function fetchState(){
+    for(const s of URLs){
+      try{
+        const res = await fetch(s.url,{cache:'no-store'});
+        if(!res.ok) continue;
+        const j = await res.json();
+        if(!j.states) continue;
+        const st = j.states.find(e => (e[1]||'').trim().toUpperCase()===FLIGHT);
+        if(st){ set('src',`OpenSky (${s.name})`); return st; }
+      }catch(_){}
+    }
+    return null;
+  }
+
+  // --- Simulation bei 2 Fehlversuchen ---
+  let miss=0, simulate=false;
+  let simLat=48.3538, simLon=11.7861, simH=200, simV=650;
+  function stepSim(){
+    const dkm = 8, degLat = dkm/111, degLon = dkm/(111*Math.cos(simLat*Math.PI/180));
+    simLat += degLat*Math.cos(simH*Math.PI/180);
+    simLon += degLon*Math.sin(simH*Math.PI/180);
+    simH = (simH+7)%360;
+    return {alt:10600, spd:simV, lat:simLat, lon:simLon, hdg:simH, ts:Date.now()};
+  }
+
+  async function tick(){
+    if(!FLIGHT){ set('mode','Kein Code'); return; }
+
+    if(!simulate){
+      const st = await fetchState();
+      if(st){
+        miss = 0;
+        const alt = Math.round((st[13] ?? st[7] ?? 0));
+        const spd = Math.round((st[9] ?? 0) * 3.6);
+        const lat = Number(st[6]), lon = Number(st[5]);
+        const hdg = Math.round(st[10] ?? 0);
+        const ts  = (st[4] || Date.now()/1000) * 1000;
+
+        set('mode','LIVE'); $('mode').style.borderColor = '#5bc0be';
+        set('alt', alt.toLocaleString()+' m');
+        set('spd',  spd+' km/h');
+        set('hdg',  hdg+'°');
+        set('pos',  (Number.isFinite(lat)&&Number.isFinite(lon)) ? `${lat.toFixed(3)}, ${lon.toFixed(3)}` : '–');
+        set('upd',  new Date(ts).toLocaleString());
+        set('route','Route: München → Ziel');
+
+        if(Number.isFinite(lat)&&Number.isFinite(lon)){
+          marker.setLatLng([lat,lon]);
+          addTrailPoint(lat,lon);
+          if(firstFit){ map.setView([lat,lon], 9); firstFit=false; }
+        }
+        setTimeout(tick, 5000);
+        return;
+      }else{
+        miss++;
+        set('mode','SUCHE…'); $('mode').style.borderColor = 'rgba(255,255,255,.25)';
+        set('upd','—'); set('src','OpenSky (BBox/Fallback)'); setTimeout(tick, 12000);
+        if(miss>=2){ simulate=true; }
+        return;
+      }
+    } else {
+      // Simulation
+      const s = stepSim();
+      set('mode','SIM'); $('mode').style.borderColor = '#f0ad4e';
+      set('alt', s.alt.toLocaleString()+' m');
+      set('spd',  s.spd+' km/h');
+      set('hdg',  Math.round(s.hdg)+'°');
+      set('pos',  `${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}`);
+      set('upd',  new Date(s.ts).toLocaleString());
+      set('route','Route: München → Ziel (simuliert)');
+      marker.setLatLng([s.lat, s.lon]); addTrailPoint(s.lat, s.lon);
+      if(firstFit){ map.setView([s.lat,s.lon], 9); firstFit=false; }
+      setTimeout(tick, 5000);
+    }
+  }
+  tick();
+</script>
+</body>
+</html>
