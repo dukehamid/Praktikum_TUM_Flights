@@ -1,0 +1,284 @@
+<testset xmlns="http://cpee.org/ns/properties/2.0">
+  <executionhandler>ruby</executionhandler>
+  <dataelements>
+    <flights_raw>{"time":1753284937,"states":[["3c4dcc","DLH8KF  ","Germany",1753284937,1753284937,11.8868,48.372,716.28,false,69.88,263.66,-3.25,null,769.62,"1245",false,0],["3c65d4","DLH1KX  ","Germany",1753284778,1753284778,11.7977,48.3536,null,true,2.06,84.38,null,null,null,"1000",false,0],["40622b","EZY93BE ","United Kingdom",1753284815,1753284815,11.8108,48.3623,null,true,13.38,81.56,null,null,null,null,false,0],["4070e5","EXS1913 ","United Kingdom",1753284936,1753284936,11.4325,48.5856,11277.6,false,240.13,133.96,0,null,11635.74,"5203",false,0],["3dc82c","DGWBC   ","Germany",1753284936,1753284937,11.4001,47.9803,1676.4,false,84.02,285.99,0,null,1790.7,"4453",false,0],["3003ae","DLA33X  ","Italy",1753284936,1753284937,11.9637,48.3569,1074.42,false,94.7,263.76,-4.88,null,1143,"1000",false,0]]}</flights_raw>
+    <flights_dashboard>[{"airline":"DLH8KF","flight":"DLH8KF","from":"München (MUC)","to":"Germany","qr":"https://www.flightradar24.com/data/flights/dlh8kf"},{"airline":"DLH1KX","flight":"DLH1KX","from":"München (MUC)","to":"Germany","qr":"https://www.flightradar24.com/data/flights/dlh1kx"},{"airline":"EZY93BE","flight":"EZY93BE","from":"München (MUC)","to":"United Kingdom","qr":"https://www.flightradar24.com/data/flights/ezy93be"},{"airline":"EXS1913","flight":"EXS1913","from":"München (MUC)","to":"United Kingdom","qr":"https://www.flightradar24.com/data/flights/exs1913"}]</flights_dashboard>
+    <encoded_dashboard>%5B%7B%22airline%22%3A%22DLH8KF%22%2C%22flight%22%3A%22DLH8KF%22%2C%22from%22%3A%22M%C3%BCnchen+%28MUC%29%22%2C%22to%22%3A%22Germany%22%2C%22qr%22%3A%22https%3A%2F%2Fwww.flightradar24.com%2Fdata%2Fflights%2Fdlh8kf%22%7D%2C%7B%22airline%22%3A%22DLH1KX%22%2C%22flight%22%3A%22DLH1KX%22%2C%22from%22%3A%22M%C3%BCnchen+%28MUC%29%22%2C%22to%22%3A%22Germany%22%2C%22qr%22%3A%22https%3A%2F%2Fwww.flightradar24.com%2Fdata%2Fflights%2Fdlh1kx%22%7D%2C%7B%22airline%22%3A%22EZY93BE%22%2C%22flight%22%3A%22EZY93BE%22%2C%22from%22%3A%22M%C3%BCnchen+%28MUC%29%22%2C%22to%22%3A%22United+Kingdom%22%2C%22qr%22%3A%22https%3A%2F%2Fwww.flightradar24.com%2Fdata%2Fflights%2Fezy93be%22%7D%2C%7B%22airline%22%3A%22EXS1913%22%2C%22flight%22%3A%22EXS1913%22%2C%22from%22%3A%22M%C3%BCnchen+%28MUC%29%22%2C%22to%22%3A%22United+Kingdom%22%2C%22qr%22%3A%22https%3A%2F%2Fwww.flightradar24.com%2Fdata%2Fflights%2Fexs1913%22%7D%5D</encoded_dashboard>
+  </dataelements>
+  <endpoints>
+    <user>https-post://cpee.org/services/timeout-user.php</user>
+    <auto>https-post://cpee.org/services/timeout-auto.php</auto>
+    <sensor>sensor</sensor>
+    <human>human</human>
+    <subprocess>https-post://cpee.org/flow/start/url/</subprocess>
+    <plc>plc</plc>
+    <timeout>https-post://cpee.org/services/timeout.php</timeout>
+    <send>https-post://cpee.org/ing/correlators/message/send/</send>
+    <get_flights>https://opensky-network.org/api/states/all?lamin=47.8&amp;lamax=48.6&amp;lomin=11.2&amp;lomax=12.0</get_flights>
+    <robot_subprocess>robot_subprocess</robot_subprocess>
+    <receive>receive</receive>
+    <wait>wait</wait>
+    <frames_display>https-put://cpee.org/out/frames/flights/</frames_display>
+    <frames_init>https-post://cpee.org/out/frames/flights/</frames_init>
+    <flight_endpoint>http://lehre.bpm.in.tum.de/ports/8081/flights</flight_endpoint>
+  </endpoints>
+  <attributes>
+    <guarded>none</guarded>
+    <info>flight_DA21</info>
+    <modeltype>CPEE</modeltype>
+    <theme>extended</theme>
+    <guarded_id/>
+    <creator>Christine Ashcreek</creator>
+    <author>Christine Ashcreek</author>
+    <model_uuid>76e23583-e1c3-446d-9ecd-9becfeadba73</model_uuid>
+    <model_version/>
+    <design_stage>draft</design_stage>
+    <design_dir>Teaching.dir/Prak.dir/TUM-Prak-25-SS.dir/Hami_Aslani.dir</design_dir>
+  </attributes>
+  <description>
+    <description xmlns="http://cpee.org/ns/description/1.0">
+      <call id="a1" endpoint="get_flights">
+        <parameters>
+          <label>Get Flights</label>
+          <method>:get</method>
+          <arguments>
+            <data>!data.flights_dashboard</data>
+          </arguments>
+        </parameters>
+        <code>
+          <prepare/>
+          <finalize output="result">require 'json'
+require 'uri'
+
+if result &amp;&amp; result["states"]
+  data.flights_raw = result.to_json  # &lt;-- raw speichern!
+
+  flights = result["states"]
+    .select { |f| f[1] &amp;&amp; f[1].strip.length &gt; 2 }
+    .first(4)
+    .map do |f|
+      callsign = f[1]&amp;.strip || "n/a"
+      {
+        airline: callsign.split(" ")[0],
+        flight: callsign,
+        from: "München (MUC)",
+        to: f[2]&amp;.strip || "Unbekannt",
+        qr: "https://www.flightradar24.com/data/flights/#{callsign.downcase}"
+      }
+    end
+
+  data.flights_dashboard = flights.to_json
+  data.encoded_dashboard = URI.encode_www_form_component(flights.to_json)
+else
+  data.flights_raw = {}.to_json
+  data.flights_dashboard = [].to_json
+  data.encoded_dashboard = URI.encode_www_form_component([].to_json)
+end</finalize>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <report>
+            <url/>
+          </report>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <call id="a5" endpoint="flight_endpoint">
+        <parameters>
+          <label>Update Flights</label>
+          <method>:post</method>
+          <arguments>
+            <data>!data.flights_dashboard</data>
+          </arguments>
+        </parameters>
+        <code>
+          <prepare/>
+          <finalize output="result"/>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <report>
+            <url/>
+          </report>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <stop id="a3"/>
+      <call id="a2" endpoint="frames_display">
+        <parameters>
+          <label>frame display</label>
+          <arguments>
+            <type>set</type>
+            <lx>0</lx>
+            <ly>1</ly>
+            <x_amount>8</x_amount>
+            <y_amount>6</y_amount>
+            <button/>
+            <style/>
+            <urls>
+              <urls_item>
+                <lang>de-at</lang>
+                <url>https://lehre.bpm.in.tum.de/~go36jas/flights/dashboard.html</url>
+              </urls_item>
+            </urls>
+            <default>
+              <data>!data.flights_dashboard</data>
+            </default>
+          </arguments>
+        </parameters>
+        <code>
+          <prepare/>
+          <finalize output="result"/>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <report>
+            <url/>
+          </report>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <loop mode="pre_test" condition="">
+        <call id="a7" endpoint="subprocess">
+          <parameters>
+            <label>navigation to Flight radar</label>
+            <arguments>
+              <behavior>wait_running</behavior>
+              <url>https://cpee.org/flow/edit.html?monitor=https://cpee.org/flow/engine/59685/</url>
+              <init/>
+              <endpoints/>
+              <attributes/>
+              <customization/>
+            </arguments>
+          </parameters>
+          <code>
+            <prepare/>
+            <finalize output="result"/>
+            <update output="result"/>
+            <rescue output="result"/>
+          </code>
+          <annotations>
+            <_generic/>
+            <_timing>
+              <_timing_weight/>
+              <_timing_avg/>
+              <explanations/>
+            </_timing>
+            <_shifting>
+              <_shifting_type>Duration</_shifting_type>
+            </_shifting>
+            <_context_data_analysis>
+              <probes/>
+              <ips/>
+            </_context_data_analysis>
+            <report>
+              <url/>
+            </report>
+            <_notes>
+              <_notes_general/>
+            </_notes>
+          </annotations>
+          <documentation>
+            <input/>
+            <output/>
+            <implementation>
+              <description/>
+            </implementation>
+            <code>
+              <description/>
+            </code>
+          </documentation>
+        </call>
+        <_probability>
+          <_probability_min/>
+          <_probability_max/>
+          <_probability_avg/>
+        </_probability>
+      </loop>
+      <stop id="a4"/>
+    </description>
+  </description>
+  <transformation>
+    <description type="copy"/>
+    <dataelements type="none"/>
+    <endpoints type="none"/>
+  </transformation>
+</testset>
