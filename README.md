@@ -1,4 +1,3 @@
-# Praktikum_TUM_Flights
 # ✈️ Live Flight Dashboard — TUM CPEE Project
 
 This project visualizes **real-time flight data above Garching (Munich)** using the **OpenSky Network API**.  
