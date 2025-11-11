@@ -10,7 +10,7 @@ and allows users to view detailed flight telemetry (altitude, speed, heading, an
 ## 🧭 Overview
 
 ### 🔹 Dashboard (`dashboard.html`)
-Displays the **4 active flights** detected above Garching in real time.
+Displays the **4 active flights** detected above Garching in real time for OpenSky API.
 
 Each flight tile shows:
 - 🔳 A **QR code** linked to the specific flight  
